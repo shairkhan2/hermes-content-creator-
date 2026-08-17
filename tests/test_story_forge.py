@@ -220,6 +220,89 @@ def test_uniform_budgets_warned(tmp_path):
     assert "uniform-budgets" in codes(proc)
 
 
+# ----------------------------------------------------------------------- long form
+
+def build_long_ledger(beats=44, acts=3):
+    """A 30-minute, three-act ledger nested root -> act -> beat."""
+    beat_list = [{"n": i, "job": f"beat {i} job", "word_budget": 95 + (i % 5) * 8}
+                 for i in range(1, beats + 1)]
+    questions = [{"id": "Q1", "text": "Root?", "parent": None,
+                  "opened_at": 1, "pays_off_at": beats}]
+    span = beats // acts
+    bounds = []
+    for a in range(acts):
+        start = a * span + 1
+        end = beats if a == acts - 1 else (a + 1) * span + 1
+        bounds.append((start, end))
+        # Acts overlap: each opens a beat before the previous closes.
+        questions.append({"id": f"A{a + 1}", "text": f"Act {a + 1}?", "parent": "Q1",
+                          "opened_at": max(1, start - 1), "pays_off_at": end})
+    n = 0
+    for a, (start, end) in enumerate(bounds):
+        opened = start
+        while opened + 3 <= end:
+            n += 1
+            questions.append({"id": f"B{n}", "text": f"Sub {n}?", "parent": f"A{a + 1}",
+                              "opened_at": opened, "pays_off_at": min(opened + 3, end)})
+            opened += 2
+    return {"root_question": "Root?", "total_beats": beats,
+            "target_words": sum(b["word_budget"] for b in beat_list),
+            "beats": beat_list, "questions": questions}
+
+
+def test_long_form_ledger_validates(tmp_path):
+    """Nothing in the pipeline caps duration — 44 beats, three acts, depth 3."""
+    path = tmp_path / "long.json"
+    path.write_text(json.dumps(build_long_ledger()), encoding="utf-8")
+    proc = run(CHECK_LEDGER, path, "--json")
+    assert proc.returncode == 0, proc.stdout
+    assert not json.loads(proc.stdout)["errors"]
+
+
+def test_long_form_nesting_depth_enforced(tmp_path):
+    """Beat questions must stay inside their act, not just inside the root."""
+    data = build_long_ledger()
+    for q in data["questions"]:
+        if q["id"] == "B1":
+            q["pays_off_at"] = data["total_beats"] - 1  # outlives act A1
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    proc = run(CHECK_LEDGER, path, "--json")
+    assert proc.returncode == 1
+    assert "child-outlives-parent" in error_codes(proc)
+
+
+def test_nested_cascade_at_end_is_not_crowded(tmp_path):
+    """root <- act <- beat all landing in the final beat is correct, not a backlog."""
+    path = tmp_path / "long.json"
+    path.write_text(json.dumps(build_long_ledger()), encoding="utf-8")
+    proc = run(CHECK_LEDGER, path, "--json")
+    assert "crowded-ending" not in codes(proc)
+
+
+def test_sibling_pileup_at_end_still_warns(tmp_path):
+    data = build_long_ledger()
+    last_act = "A3"
+    moved = 0
+    for q in data["questions"]:
+        if q["id"].startswith("B") and moved < 3:
+            q["parent"] = last_act
+            q["opened_at"] = data["total_beats"] - 3
+            q["pays_off_at"] = data["total_beats"]
+            moved += 1
+    path = tmp_path / "pileup.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    proc = run(CHECK_LEDGER, path, "--json")
+    assert "crowded-ending" in codes(proc)
+
+
+def test_two_beat_minimum_still_enforced(tmp_path):
+    def mutate(d):
+        d["total_beats"] = 1
+    proc = run(CHECK_LEDGER, write_ledger(tmp_path, mutate), "--json")
+    assert proc.returncode == 1
+
+
 def test_bad_json_exits_2(tmp_path):
     path = tmp_path / "broken.json"
     path.write_text("{not json", encoding="utf-8")

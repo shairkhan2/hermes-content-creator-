@@ -132,15 +132,56 @@ duration target, tone, and anything the user says is off-limits or must be inclu
 
 Convert duration to structure — the writer never sees this arithmetic:
 
-| Target | Words @150wpm | Beats | Words/beat |
-|---|---|---|---|
-| 60 s | 150 | 3 | 40–60 |
-| 90 s | 225 | 4 | 45–70 |
-| 3 min | 450 | 6 | 60–90 |
-| 5 min | 750 | 9 | 70–110 |
-| 10 min | 1500 | 14 | 90–130 |
+| Target | Words @150wpm | Beats | Words/beat | Acts |
+|---|---|---|---|---|
+| 60 s | 150 | 3 | 40–60 | 1 |
+| 90 s | 225 | 4 | 45–70 | 1 |
+| 3 min | 450 | 6 | 60–90 | 1 |
+| 5 min | 750 | 9 | 70–110 | 1 |
+| 10 min | 1500 | 14 | 90–130 | 2 |
+| 20 min | 3000 | 26 | 100–140 | 3 |
+| 30 min | 4500 | 38 | 105–145 | 3–4 |
+| 45 min | 6750 | 55 | 110–150 | 4–5 |
+| 60 min | 9000 | 72 | 110–150 | 5–6 |
 
-Beats are deliberately not uniform. Beat 1 runs short; payoff beats run long.
+The table is a starting point, not a limit. Nothing in the pipeline caps duration —
+extend it by the same arithmetic: `words = minutes × wpm`, `beats ≈ words / 120` for
+long form, and add an act roughly every 12–15 beats. Adjust `words_per_minute` in
+config if the intended delivery is faster or slower than 150.
+
+Beats are deliberately not uniform. Beat 1 runs short; payoff beats run long. Beats
+also grow with total length — a 40-beat story with 80-word beats is a list, not a story.
+
+### Above ~15 beats, use acts
+
+A flat ledger works up to roughly 15 beats. Past that, hanging thirty sub-questions
+directly off the root produces a structure that validates and still feels like a list,
+because nothing organises the middle.
+
+For long form, nest one level deeper:
+
+```
+root question              opens beat 1, closes at the end
+└── act question           spans 12–15 beats
+    └── beat questions     span 2–4 beats, overlapping
+```
+
+Act questions are real questions with real payoffs, not chapter headings. Each act
+closes something the listener has been carrying for ten minutes, and the next act's
+question is already open when it does.
+
+`check_ledger.py` handles arbitrary nesting depth. Two things to know at this scale:
+
+- A cascade at the end is correct — the final beat question answers its act, the act
+  answers the root, all landing in the last beat. `crowded-ending` only fires on
+  *siblings* piling up, which is the real failure.
+- Act boundaries are the most common source of `hard-seam`. Open the next act's
+  question a beat or two before the current act closes.
+
+Long form multiplies the review volume: 38 beats × 3 drafts × 4 auditors is over 450
+`delegate_task` calls. That is the intended cost of the design, but it is wall-clock
+time — for anything past ~20 minutes, tell the user up front that this runs long, and
+consider `background=true` with `notify_on_complete` on the outer invocation.
 
 Completion: `research/brief.md` exists and names a duration, an audience, and a tone.
 

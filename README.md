@@ -19,6 +19,9 @@ length. Padding to length **is** the slop.
 So the writer is never told the duration. It gets one beat, that beat's job, and a hard
 word cap. A beat that does its job in 60 words against a cap of 95 stops at 60.
 
+Duration is an input, not a limit — 60 seconds to an hour and beyond. Past ~15 beats
+the ledger nests into acts so the middle of a long piece has a spine instead of a list.
+
 ### How it works
 
 ```

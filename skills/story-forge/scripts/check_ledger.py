@@ -208,15 +208,20 @@ def check_root(data, by_id):
                            f"root {root.get('id')} opens at beat {root.get('opened_at')} — "
                            "the root question normally opens the story"))
 
-    # Exactly one sub-question may land in the final beat: the one whose answer
-    # delivers the root's answer. Two or more and the ending is doing cleanup.
-    others_at_end = sorted(q.get("id") for q in by_id.values()
-                           if q.get("parent") is not None and q.get("pays_off_at") == total)
-    if len(others_at_end) > 1:
-        out.append(finding("crowded-ending", SEVERITY_WARN,
-                           f"{len(others_at_end)} sub-questions ({', '.join(others_at_end)}) "
-                           "pay off in the final beat — the ending is clearing a backlog "
-                           "instead of landing one answer"))
+    # A chain of nested questions landing together in the final beat is a cascade:
+    # the beat-level question answers its act, the act answers the root. That is the
+    # correct shape for long form. What is wrong is *siblings* piling up at the end —
+    # several questions with the same parent, none of which set up the others.
+    by_parent = {}
+    for q in by_id.values():
+        if q.get("parent") is not None and q.get("pays_off_at") == total:
+            by_parent.setdefault(q["parent"], []).append(str(q.get("id")))
+    for parent, siblings in sorted(by_parent.items()):
+        if len(siblings) > 1:
+            out.append(finding("crowded-ending", SEVERITY_WARN,
+                               f"{len(siblings)} sibling questions ({', '.join(sorted(siblings))}) "
+                               f"all hang from {parent} and all pay off in the final beat — the "
+                               "ending is clearing a backlog instead of landing one answer"))
 
     declared = (data.get("root_question") or "").strip()
     if declared and root.get("text") and declared != root["text"].strip():

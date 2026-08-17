@@ -154,6 +154,43 @@ Good divergence on the same material:
 - **C — consequence first.** Root: why did a furniture shortage in Ohio start with
   wind in Egypt? Opens at the far end of the chain and works backwards.
 
+## Long form: acts
+
+Everything above describes a flat ledger — sub-questions hanging directly off the root.
+That works to roughly 15 beats. Past that it validates and still reads as a list,
+because nothing organises the middle.
+
+For a 20-, 30-, or 60-minute piece, nest one level deeper:
+
+```
+Q1   root                              beat 1 ────────────────────────► end
+ ├── A1  act question                  beats 1–15
+ │    ├── B1  beat question            beats 1–4
+ │    ├── B2                           beats 3–6      (overlapping)
+ │    └── …
+ ├── A2  act question                  beats 13–29    (opens before A1 closes)
+ │    └── …
+ └── A3  act question                  beats 27–end
+      └── …
+```
+
+Rules that matter at this scale:
+
+- **Act questions are questions, not headings.** "The middle section" is not an act
+  question. "Why did the people who built it refuse to use it?" is. Each act closes
+  something the listener has carried for ten minutes.
+- **Acts overlap too.** A2 opens before A1 closes, exactly like beat questions. An act
+  boundary where the next act opens only as the current one closes is the most common
+  source of `hard-seam` in long form.
+- **Beat questions nest inside their act,** not the root. A beat question serving A2
+  must open and close within A2's span — the nesting rules apply at every depth.
+- **A cascade at the end is correct.** The final beat question answers its act, the act
+  answers the root, all in the last beat. `crowded-ending` only fires on siblings
+  piling up, which is the actual failure it is looking for.
+
+Depth is not limited to three. A 60-minute piece may want root → act → section → beat.
+The validator handles any depth; the same nesting rules apply at each level.
+
 ## When no ledger validates
 
 If all three candidates fail, the material does not support the requested length. Say
