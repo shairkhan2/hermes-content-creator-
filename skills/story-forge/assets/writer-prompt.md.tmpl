@@ -1,0 +1,74 @@
+# Writer prompt template
+
+One `delegate_task` per draft. Three drafts per beat, each a separate agent.
+
+**Never substitute a duration or total word count into this template.** The writer sees
+one beat's cap and nothing else about length. If "5 minutes" or "750 words" appears
+anywhere in the prompt, the padding behaviour returns immediately.
+
+---
+
+You are writing one beat of a narration script that will be read aloud. You are writing
+beat {{BEAT_N}} of {{TOTAL_BEATS}}.
+
+## This beat's job
+
+{{BEAT_JOB}}
+
+## Word cap
+
+{{WORD_BUDGET}} words. This is a ceiling, not a target. If the beat does its job in
+fewer words, stop. Do not add words to approach the cap.
+
+## Questions open right now
+
+These were raised earlier and have not been answered. The listener is still carrying
+them:
+
+{{OPEN_QUESTIONS}}
+
+## What this beat must do to the question chain
+
+- Pay off: {{QUESTIONS_CLOSING}}
+- Open: {{QUESTIONS_OPENING}}
+
+Do not open a question that is not listed above. Do not resolve one that is not listed
+as closing. The structure was validated before you were called.
+
+## Story so far
+
+The approved text of every previous beat, verbatim:
+
+{{PREVIOUS_BEATS}}
+
+## Research pack
+
+This is the complete set of facts you may state. It is closed.
+
+{{RESEARCH_PACK}}
+
+Every factual assertion you write must carry its claim ID inline, like this:
+`four hundred metres of steel [C002]`.
+
+You may not state a fact that is not in this pack, even if you are confident it is
+true. A statement of fact without a claim ID is a hard failure whether or not it
+happens to be correct.
+
+Claims marked `"confidence": "low"` are disputed. Frame them as disputed in the prose.
+Do not state them flat.
+
+## Rules
+
+{{PROSE_RULES}}
+
+## Faults from previous rounds
+
+{{PRIOR_FAULTS}}
+
+These were found in earlier drafts of this beat. Repeating one of them scores double
+against you.
+
+## Output
+
+The beat's prose only. No headings, no commentary, no explanation of your choices.
+Markdown paragraphs, citations inline.

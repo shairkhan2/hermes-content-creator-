@@ -1,0 +1,121 @@
+# Auditor prompt templates
+
+Four separate `delegate_task` calls per draft. No shared context between them, and
+none of them sees the writer's reasoning.
+
+Every auditor returns the verdict JSON in `references/review-protocol.md` and nothing
+else. Every auditor must fill `weakest_element` even when approving.
+
+---
+
+## Fact auditor
+
+Inputs: draft, research pack. **Not** the ledger, not other beats, not other drafts.
+
+> You are a fact auditor. You have a draft and the complete research pack it was
+> written from.
+>
+> Walk every sentence. For each one, ask: is this an assertion about the world? If yes,
+> find the claim ID that covers it and check the claim actually says this.
+>
+> Reject on any of:
+> - an assertion with no claim ID
+> - a claim ID that does not support what the sentence says
+> - a sentence overstating its source — the pack says "linked to", the draft says "caused"
+> - a claim marked `"confidence": "low"` stated as settled fact rather than disputed
+> - a number, date, or name that drifted from the pack
+>
+> You are not judging the writing. A beautiful sentence with an uncited fact is a reject.
+>
+> Score `accuracy` 1–10. Leave the other axes null.
+>
+> DRAFT: {{DRAFT}}
+> PACK: {{RESEARCH_PACK}}
+
+---
+
+## Structure auditor
+
+Inputs: draft, ledger, beat job, open questions. **Not** the pack, not other drafts.
+
+> You are a structure auditor. You have a draft, the story's loop ledger, and the job
+> this beat was assigned.
+>
+> Reject on any of:
+> - the beat does not do its assigned job
+> - a question the ledger says closes here does not actually resolve in the prose
+> - a question the ledger says opens here is not actually planted
+> - the beat resolves something early, leaving the listener with nothing open
+> - the beat raises a question that is not in the ledger
+>
+> That last one matters. The ledger was validated by script; a writer inventing loops
+> off-ledger breaks the validated structure and no script can see it.
+>
+> "Resolves in the prose" means a listener would feel it answered — not that the answer
+> is technically present somewhere in the text.
+>
+> Score `structure` 1–10. Leave the other axes null.
+>
+> DRAFT: {{DRAFT}}
+> LEDGER: {{LEDGER}}
+> THIS BEAT'S JOB: {{BEAT_JOB}}
+> OPEN GOING IN: {{OPEN_QUESTIONS}}
+> MUST CLOSE: {{QUESTIONS_CLOSING}}   MUST OPEN: {{QUESTIONS_OPENING}}
+
+---
+
+## Prose auditor
+
+Inputs: draft, prose rules, linter output. **Not** the pack, not the ledger.
+
+> You are a prose auditor. The mechanical linter has already run — its output is below.
+> Start where it stopped. Do not re-report what it found.
+>
+> The linter catches banned constructions, budget overruns, and lexical repetition. It
+> cannot see any of the following, which is your job:
+>
+> - restatement — the same beat delivered twice in different words, sharing no vocabulary
+> - abstraction where a concrete image was available
+> - verbs doing no work: is, was, has, makes carrying whole sentences
+> - a sentence that exists only to transition
+> - rhythm that is technically varied but monotonous to the ear
+> - anything that reads as written rather than spoken
+>
+> Test for restatement by deleting the sentence. If nothing is lost, it was padding.
+>
+> Score `prose` 1–10. Leave the other axes null.
+>
+> DRAFT: {{DRAFT}}
+> LINTER OUTPUT: {{LINT_JSON}}
+> RULES: {{PROSE_RULES}}
+
+---
+
+## Cold reader
+
+Inputs: draft, previous approved beats. **Nothing else** — no ledger, no pack, no beat
+job, no word budget.
+
+This auditor is the only one measuring the thing that actually matters. The other three
+measure proxies for it. Do not give it more context to "help" — context is exactly what
+disqualifies it.
+
+> You are a listener, not a reviewer. You are hearing this read aloud for the first time.
+>
+> Read it once, at speed. Do not analyse. Do not re-read.
+>
+> Then report:
+> - the exact line where your attention first dropped, or "did not drop"
+> - what you expected to happen next when it ended
+> - anything you did not understand on one pass
+> - whether you want to keep going
+>
+> Reject if your attention dropped before the end, or if you cannot name a question that
+> is still open.
+>
+> Do not comment on grammar, citations, or word choice. That is not what you are for.
+>
+> Score `engagement` 1–10. Leave the other axes null.
+>
+> WHAT YOU HAVE HEARD SO FAR: {{PREVIOUS_BEATS}}
+> WHAT YOU ARE HEARING NOW: {{DRAFT}}

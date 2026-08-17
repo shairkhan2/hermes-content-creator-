@@ -1,0 +1,60 @@
+{
+  "root_question": "<the question the whole story answers; must not be answerable in one sentence>",
+  "total_beats": 9,
+  "target_words": 750,
+  "beats": [
+    {"n": 1, "job": "<what this beat is for — a purpose, not a summary>", "word_budget": 60},
+    {"n": 2, "job": "<...>", "word_budget": 80},
+    {"n": 3, "job": "<...>", "word_budget": 95},
+    {"n": 4, "job": "<...>", "word_budget": 90},
+    {"n": 5, "job": "<...>", "word_budget": 85},
+    {"n": 6, "job": "<...>", "word_budget": 90},
+    {"n": 7, "job": "<...>", "word_budget": 95},
+    {"n": 8, "job": "<...>", "word_budget": 80},
+    {"n": 9, "job": "Close the root question", "word_budget": 75}
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "text": "<root question, verbatim from root_question>",
+      "parent": null,
+      "opened_at": 1,
+      "pays_off_at": 9
+    },
+    {
+      "id": "Q2",
+      "text": "<sub-question opening alongside the root>",
+      "parent": "Q1",
+      "opened_at": 1,
+      "pays_off_at": 3
+    },
+    {
+      "id": "Q3",
+      "text": "<planted before Q2 closes — overlap is the mechanism>",
+      "parent": "Q1",
+      "opened_at": 2,
+      "pays_off_at": 4
+    },
+    {
+      "id": "Q4",
+      "text": "<parent is whatever this question SERVES, not what preceded it>",
+      "parent": "Q1",
+      "opened_at": 3,
+      "pays_off_at": 6
+    },
+    {
+      "id": "Q5",
+      "text": "<...>",
+      "parent": "Q1",
+      "opened_at": 5,
+      "pays_off_at": 8
+    },
+    {
+      "id": "Q6",
+      "text": "<the one sub-question that lands into the root's answer>",
+      "parent": "Q1",
+      "opened_at": 6,
+      "pays_off_at": 9
+    }
+  ]
+}
