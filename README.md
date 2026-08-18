@@ -1,6 +1,13 @@
 # hermes-content-creator
 
-Hermes Agent skills for content creation. Currently one skill: **Story Forge**.
+Hermes Agent skills for content creation. Two skills so far, chained by a file contract rather than a shared runtime:
+
+| Skill | Takes | Produces |
+|---|---|---|
+| **Story Forge** | a topic | `story-clean.md` + `handoff.json` |
+| **Shot Forge** | `handoff.json` + `voiceover.json` | `final.mp4` |
+
+The voiceover stage between them is not built yet — `voiceover.json` is a documented input contract that any TTS emitting SSML mark timepoints can satisfy.
 
 ## Story Forge
 
@@ -54,6 +61,30 @@ defend the writer's choices.
 
 Three drafts of everything, always. Approval is the entry fee, not the finish line.
 
+## Shot Forge
+
+Renders a narrated script to video on Vertex AI. It derives a visual style *from the
+story*, cuts a shot list against real audio durations, generates chained keyframes, and
+bridges each pair with Veo 3.1.
+
+**Timing comes from the audio, never an estimate.** Cloud TTS returns SSML mark
+timepoints, so shot boundaries are chosen against exact numbers. (Transcribing your own
+synthetic speech to recover timing it already gave you only adds error.)
+
+**8 seconds is a hard Veo ceiling**, so it becomes the shot rhythm rather than a limit.
+Chaining removes the need for any single clip to run longer: consecutive shots in a beat
+share a keyframe — the end of one clip *is* the start of the next, the same PNG — so
+continuity is structural instead of prompted and drift cannot accumulate. Beat
+boundaries hard-cut, landing the edit where the story's question chain turns.
+
+**Style is derived, then locked.** Three candidate looks are argued from the finished
+story, probed with Imagen, and audited. The gate that decides it is reproducibility:
+render a style on two unrelated subjects and compare. A style that drifts across two
+probes will drift across four hundred keyframes, and finding out now costs two images.
+
+Requires a **billed GCP project with Vertex AI enabled**. Google AI Pro/Ultra covers Flow
+and NotebookLM, which are UI products with no API — a subscription alone cannot run this.
+
 ### Layout
 
 ```
@@ -74,15 +105,32 @@ skills/story-forge/
     ├── verdict.json.tmpl
     ├── writer-prompt.md.tmpl
     └── auditor-prompts.md.tmpl
+
+skills/shot-forge/
+├── SKILL.md
+├── references/
+│   ├── style-derivation.md   # three candidates, probe, reproducibility gate
+│   ├── shot-list.md          # clause merging, the 8s ceiling, chaining and cuts
+│   ├── keyframes.md          # Imagen prompting, hinge frames, motion budget
+│   ├── veo.md                # Veo 3.1 on Vertex: params, first/last frame, audio
+│   └── troubleshooting.md    # drift, mush, desync, auth
+├── scripts/
+│   ├── build_shotlist.py     # timepoints -> shots under the ceiling
+│   └── check_shotlist.py     # validates the timeline and the chain
+└── assets/
+    ├── voiceover.json.tmpl   # the input contract
+    ├── shotlist.json.tmpl
+    └── style.json.tmpl
 ```
 
 ### Install
 
 ```bash
 hermes skills install shairkhan2/hermes-content-creator-/skills/story-forge
+hermes skills install shairkhan2/hermes-content-creator-/skills/shot-forge
 ```
 
-Then `/story-forge` in any Hermes session.
+Then `/story-forge` or `/shot-forge` in any Hermes session.
 
 ### The validators standalone
 
@@ -91,6 +139,8 @@ Both are stdlib-only Python 3.9+, usable outside Hermes.
 ```bash
 python3 skills/story-forge/scripts/check_ledger.py ledger.json
 python3 skills/story-forge/scripts/lint_draft.py draft.md --pack pack.json --budget 95
+python3 skills/shot-forge/scripts/build_shotlist.py vo.json -o shotlist.json
+python3 skills/shot-forge/scripts/check_shotlist.py shotlist.json --require-prompts
 ```
 
 Exit `0` clean, `1` on findings, `2` on bad input. Add `--json` for machine-readable

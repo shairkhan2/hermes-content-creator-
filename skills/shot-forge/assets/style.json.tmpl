@@ -1,0 +1,22 @@
+{
+  "_comment": "Locked AFTER the three-candidate audit and the reproducibility gate. Once locked it does not change mid-render — a style edited at shot 120 means shots 1-119 belong to a different film.",
+  "id": "A",
+  "name": "<short name for the look>",
+  "style_string": "<medium, palette, light, lens, texture, era — verbatim into every frame prompt, never paraphrased>",
+  "negative_prompt": "<what must never appear>",
+  "palette": ["#3a4045", "#8a7a5c", "#c4b393", "#1c1f22"],
+  "aspect_ratio": "16:9",
+  "resolution": "1920x1080",
+  "argument": "<why THIS story should look like this — the thing that makes it derived rather than chosen>",
+  "reference_image": "style/reference.png",
+  "probes": ["style/probe-face.png", "style/probe-landscape.png"],
+  "reproducibility": {
+    "checked": true,
+    "palette_consistent": true,
+    "light_consistent": true,
+    "texture_consistent": true,
+    "medium_consistent": true,
+    "notes": "<what Gemini vision reported comparing the two probes>"
+  },
+  "locked": true
+}
