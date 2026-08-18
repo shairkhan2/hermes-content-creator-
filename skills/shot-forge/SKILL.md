@@ -225,15 +225,24 @@ Detail: `references/veo.md`.
 
 ### 6. Assemble
 
-Concatenate clips in shot order, then lay the narration over the ambience bed:
+Build the edit manifest, then let the backend emit its own commands. The manifest holds
+the edit decisions; the backend turns them into a file.
 
 ```
-terminal(command="ffmpeg -f concat -safe 0 -i clips.txt -c copy <project>/silent.mp4", timeout=600)
-terminal(command="ffmpeg -i <project>/silent.mp4 -i <project>/voiceover.wav -filter_complex \"[0:a]volume=-24dB[amb];[amb][1:a]amix=inputs=2:duration=first[a]\" -map 0:v -map \"[a]\" -c:v copy <project>/final.mp4", timeout=600)
+terminal(command="python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py <project>/shotlist.json -o <project>/edit.json --narration <project>/voiceover.wav --clips-dir <project>/clips", timeout=60)
+terminal(command="python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py <project>/edit.json --check", timeout=60)
+terminal(command="python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py <project>/edit.json --emit ffmpeg", timeout=60)
 ```
 
-Confirm the render matches the narration exactly — any drift means a shot boundary was
-edited by hand after the shot list was built.
+The `--check` pass fails at build time if the manifest asks for something the active
+backend cannot render, rather than discovering it mid-render.
+
+Run the emitted commands. Do not hand-write ffmpeg here — generated commands are what
+keeps the renderer swappable, and `ffmpeg` is a placeholder for an editor, not a choice.
+It concatenates and mixes; it does not edit. See `references/render-backends.md`.
+
+Confirm the render matches the narration. Drift means a shot boundary was changed after
+the shot list was built.
 
 ```
 terminal(command="ffprobe -v error -show_entries format=duration -of csv=p=0 <project>/final.mp4", timeout=60)
@@ -247,6 +256,9 @@ python3 ${HERMES_SKILL_DIR}/scripts/build_shotlist.py vo.json --max-shot 8.0 --m
 python3 ${HERMES_SKILL_DIR}/scripts/check_shotlist.py shotlist.json
 python3 ${HERMES_SKILL_DIR}/scripts/check_shotlist.py shotlist.json --require-prompts --require-motion
 python3 ${HERMES_SKILL_DIR}/scripts/check_shotlist.py shotlist.json --json --strict
+python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py shotlist.json -o edit.json --narration vo.wav
+python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py edit.json --check [--backend opencut]
+python3 ${HERMES_SKILL_DIR}/scripts/build_edit.py edit.json --emit ffmpeg
 ```
 
 Both exit `0` clean, `1` on findings, `2` on bad input.
@@ -269,6 +281,10 @@ Both exit `0` clean, `1` on findings, `2` on bad input.
   renders is an expensive way to learn it.
 - **Don't hand-edit `shotlist.json` timings.** They tile the narration exactly. Change
   one and the audio desyncs from that point on. Rebuild from `voiceover.json` instead.
+- **ffmpeg is not an editor.** It joins clips and mixes audio. Every boundary being a
+  cut is what lets it stream-copy, which is exact — but transitions, effects, and
+  keyframes are outside what it can do at all. Express them in the manifest and the
+  capability gate will reject them until a real editor backend exists.
 - **Scale is not a surprise.** A 30-minute story is roughly 225 clips and 450 frames.
   Tell the user the count and run in the background with `notify_on_complete`.
 
@@ -294,4 +310,5 @@ terminal(command="ffprobe -v error -show_entries format=duration -of csv=p=0 <pr
 | `references/shot-list.md` | Clause merging, the 8s ceiling, chaining and cuts |
 | `references/keyframes.md` | Imagen prompting, hinge frames, the motion budget |
 | `references/veo.md` | Veo 3.1 on Vertex: parameters, first/last frame, native audio |
+| `references/render-backends.md` | The backend contract, ffmpeg's ceiling, the OpenCut swap |
 | `references/troubleshooting.md` | Drift, mush, desync, auth, and what each one means |

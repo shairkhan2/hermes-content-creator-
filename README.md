@@ -82,6 +82,20 @@ story, probed with Imagen, and audited. The gate that decides it is reproducibil
 render a style on two unrelated subjects and compare. A style that drifts across two
 probes will drift across four hundred keyframes, and finding out now costs two images.
 
+**The renderer is swappable.** Edit decisions land in a backend-agnostic manifest;
+a backend turns them into a file. Today that backend is ffmpeg, which is honest about
+what it is — it concatenates clips and mixes audio, and because every boundary is a cut
+it stream-copies with no re-encode. It is not an editor: no transitions, no effects, no
+keyframes. Backends declare capabilities, so a manifest asking for more fails at build
+time rather than mid-render, and the ffmpeg table lists only what its emitter can
+actually generate.
+
+[OpenCut](https://github.com/OpenCut-app/OpenCut) is the intended replacement — a real
+editor with a GPU compositor, shader effects, and keyframes, whose roadmap names an
+Editor API, headless mode, and an MCP server. None of it has shipped yet, so `opencut`
+is declared as a backend and marked unavailable. When it lands, the swap is a new
+emitter reading the same manifest; nothing upstream changes.
+
 Requires a **billed GCP project with Vertex AI enabled**. Google AI Pro/Ultra covers Flow
 and NotebookLM, which are UI products with no API — a subscription alone cannot run this.
 
@@ -113,10 +127,12 @@ skills/shot-forge/
 │   ├── shot-list.md          # clause merging, the 8s ceiling, chaining and cuts
 │   ├── keyframes.md          # Imagen prompting, hinge frames, motion budget
 │   ├── veo.md                # Veo 3.1 on Vertex: params, first/last frame, audio
+│   ├── render-backends.md    # backend contract, ffmpeg's ceiling, the OpenCut swap
 │   └── troubleshooting.md    # drift, mush, desync, auth
 ├── scripts/
 │   ├── build_shotlist.py     # timepoints -> shots under the ceiling
-│   └── check_shotlist.py     # validates the timeline and the chain
+│   ├── check_shotlist.py     # validates the timeline and the chain
+│   └── build_edit.py         # edit manifest + backend capability gate
 └── assets/
     ├── voiceover.json.tmpl   # the input contract
     ├── shotlist.json.tmpl
@@ -141,6 +157,8 @@ python3 skills/story-forge/scripts/check_ledger.py ledger.json
 python3 skills/story-forge/scripts/lint_draft.py draft.md --pack pack.json --budget 95
 python3 skills/shot-forge/scripts/build_shotlist.py vo.json -o shotlist.json
 python3 skills/shot-forge/scripts/check_shotlist.py shotlist.json --require-prompts
+python3 skills/shot-forge/scripts/build_edit.py shotlist.json -o edit.json
+python3 skills/shot-forge/scripts/build_edit.py edit.json --emit ffmpeg
 ```
 
 Exit `0` clean, `1` on findings, `2` on bad input. Add `--json` for machine-readable

@@ -248,3 +248,95 @@ def test_bad_json_exits_2(tmp_path):
     p = tmp_path / "broken.json"
     p.write_text("{not json", encoding="utf-8")
     assert run(CHECK, p).returncode == 2
+
+
+# --------------------------------------------------------------- render backends
+
+EDIT = SKILL / "scripts" / "build_edit.py"
+
+
+def build_edit(tmp_path, shotlist, *extra):
+    sl = write(tmp_path, "sl.json", shotlist)
+    out = tmp_path / "edit.json"
+    proc = run(EDIT, sl, "-o", out, "--narration", "vo.wav", *extra)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(out.read_text())
+
+
+def test_edit_manifest_builds_from_shotlist(tmp_path):
+    edit = build_edit(tmp_path, build(tmp_path))
+    assert edit["backend"] == "ffmpeg"
+    assert edit["clip_count"] == len(edit["clips"])
+    assert all(c["file"].endswith(".mp4") for c in edit["clips"])
+
+
+def test_beat_heads_are_cuts_interiors_chain(tmp_path):
+    sl = build(tmp_path)
+    edit = build_edit(tmp_path, sl)
+    by_shot = {s["id"]: s for s in sl["shots"]}
+    for clip in edit["clips"]:
+        expected = "cut" if by_shot[clip["shot"]]["index_in_beat"] == 0 else "chain"
+        assert clip["transition_in"] == expected
+
+
+def test_ffmpeg_rejects_effects_it_cannot_render(tmp_path):
+    """The capability gate fails at build time, not mid-render."""
+    edit = build_edit(tmp_path, build(tmp_path))
+    edit["clips"][1]["effects"] = [{"type": "blur", "keyframes": [{"t": 0, "v": 0}]}]
+    p = write(tmp_path, "e.json", edit)
+    proc = run(EDIT, p, "--check")
+    assert proc.returncode == 1
+    assert "blur" in proc.stderr and "keyframe" in proc.stderr
+
+
+def test_ffmpeg_rejects_transitions_the_emitter_cannot_generate(tmp_path):
+    """The table lists only what the emitter builds — dissolve is not in it."""
+    edit = build_edit(tmp_path, build(tmp_path))
+    edit["clips"][2]["transition_in"] = "dissolve"
+    p = write(tmp_path, "e.json", edit)
+    proc = run(EDIT, p, "--check")
+    assert proc.returncode == 1
+    assert "dissolve" in proc.stderr
+
+
+def test_opencut_backend_declared_but_unavailable(tmp_path):
+    edit = build_edit(tmp_path, build(tmp_path))
+    p = write(tmp_path, "e.json", edit)
+    proc = run(EDIT, p, "--check", "--backend", "opencut")
+    assert proc.returncode == 1
+    assert "not available yet" in proc.stderr
+
+
+def test_clean_manifest_passes_ffmpeg_check(tmp_path):
+    edit = build_edit(tmp_path, build(tmp_path))
+    p = write(tmp_path, "e.json", edit)
+    proc = run(EDIT, p, "--check")
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_emitted_commands_are_valid_shell(tmp_path):
+    """Generated, never hand-written — that is what keeps the backend swappable."""
+    edit = build_edit(tmp_path, build(tmp_path))
+    p = write(tmp_path, "e.json", edit)
+    proc = run(EDIT, p, "--emit", "ffmpeg")
+    assert proc.returncode == 0
+    script = tmp_path / "cmds.sh"
+    script.write_text(proc.stdout, encoding="utf-8")
+    assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
+    assert "-c copy" in proc.stdout           # stream copy, no re-encode
+    assert "amix" in proc.stdout              # narration over ambience
+    assert "ffprobe" in proc.stdout           # verification step
+
+
+def test_emitted_concat_lists_every_clip_in_order(tmp_path):
+    edit = build_edit(tmp_path, build(tmp_path))
+    p = write(tmp_path, "e.json", edit)
+    out = run(EDIT, p, "--emit", "ffmpeg").stdout
+    listed = [l.split("'")[1] for l in out.splitlines() if l.startswith("file '")]
+    assert listed == [c["file"] for c in edit["clips"]]
+
+
+def test_unknown_backend_rejected(tmp_path):
+    edit = build_edit(tmp_path, build(tmp_path))
+    p = write(tmp_path, "e.json", edit)
+    assert run(EDIT, p, "--check", "--backend", "premiere").returncode == 2
