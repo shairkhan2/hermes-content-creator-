@@ -1,0 +1,36 @@
+{
+  "_comment": "Same schema as story-forge's ledger. mode:fiction permits questions marked deliberately unresolved. The embedded mode wins over the --mode flag.",
+  "mode": "fiction",
+  "root_question": "<the question the whole story answers; must not be answerable in one sentence>",
+  "total_beats": 9,
+  "target_words": 750,
+  "beats": [
+    {"n": 1, "job": "<a purpose, not a summary>", "word_budget": 60},
+    {"n": 9, "job": "Land the root question", "word_budget": 75}
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "text": "<root question, verbatim from root_question>",
+      "parent": null,
+      "opened_at": 1,
+      "pays_off_at": 9
+    },
+    {
+      "id": "Q2",
+      "text": "<sub-question; overlaps the next one>",
+      "parent": "Q1",
+      "opened_at": 1,
+      "pays_off_at": 4
+    },
+    {
+      "_comment": "Deliberate ambiguity. No pays_off_at. unresolved_reason is REQUIRED — the validator cannot tell a decision from an oversight, so you write down which it is. Use this once, at most twice.",
+      "id": "Q3",
+      "text": "What was in the room?",
+      "parent": "Q1",
+      "opened_at": 3,
+      "unresolved": true,
+      "unresolved_reason": "Showing it collapses the dread. The story is about the door, not what is behind it."
+    }
+  ]
+}

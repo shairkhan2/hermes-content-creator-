@@ -4,8 +4,12 @@ Hermes Agent skills for content creation. Two skills so far, chained by a file c
 
 | Skill | Takes | Produces |
 |---|---|---|
-| **Story Forge** | a topic | `story-clean.md` + `handoff.json` |
+| **Story Forge** | a topic (researched) | `story-clean.md` + `handoff.json` |
+| **Tale Forge** | a premise (invented) | `story-clean.md` + `handoff.json` |
 | **Shot Forge** | `handoff.json` + `voiceover.json` | `final.mp4` |
+
+Story Forge and Tale Forge are two writers over the same machinery, emitting the same
+handoff — so either can feed the video stage.
 
 The voiceover stage between them is not built yet — `voiceover.json` is a documented input contract that any TTS emitting SSML mark timepoints can satisfy.
 
@@ -60,6 +64,34 @@ runs as a separate `delegate_task` — an auditor that watched the writer reason
 defend the writer's choices.
 
 Three drafts of everything, always. Approval is the entry fee, not the finish line.
+
+## Tale Forge
+
+The fiction writer. Ghost stories, horror, thrillers — anything invented. Same beats,
+same three drafts, same four auditors, same best-of-three. What changes is what the
+writer is held to.
+
+**The lock becomes a canon.** Story Forge holds its writer to sourced facts; there are
+no facts here, so the closed set is everything the story has established about its own
+world — characters, places, and above all *rules*. The failure it prevents is not
+hallucination but drift: the ghost's rules changing in act three, a house growing a
+floor. A named entity must exist in `canon.json` before prose can use it.
+
+Rules are the load-bearing part. A threat with no limits has no tension, because the
+audience cannot tell what counts as a near miss. Good rules don't constrain the story,
+they produce it — "only manifests in absolute silence" writes its own scenes.
+
+**One structural rule inverts.** Story Forge errors on any question that never pays off.
+For horror that's wrong — "what was in the room?" left unanswered is the genre working.
+So the ledger runs in fiction mode, where a question may be marked `unresolved` — but
+only with an `unresolved_reason`. The validator can't tell a deliberate ambiguity from a
+question the writer forgot to close, so it makes you write down which it is.
+
+**The linter swaps its hardest check.** Research mode fails unfalsifiable attribution
+("experts say"). Fiction fails **told emotion** — "she was terrified", "a sense of
+dread" — the same defect in a different register: asserting an effect the prose hasn't
+earned. A reader told they're frightened stops being frightened. Genre furniture
+(chills down spines, deafening silence) fails too.
 
 ## Shot Forge
 
@@ -120,6 +152,20 @@ skills/story-forge/
     ├── writer-prompt.md.tmpl
     └── auditor-prompts.md.tmpl
 
+skills/tale-forge/
+├── SKILL.md
+├── references/
+│   ├── canon.md              # entities, rules, why limits create tension
+│   ├── fiction-ledger.md     # fiction mode, deliberate ambiguity
+│   ├── fiction-prose.md      # told emotion, genre cliche, what horror prose does
+│   └── review-protocol.md    # canon auditor, and what else changes
+├── scripts/                  # byte-identical copies; a test guards the drift
+│   ├── check_ledger.py
+│   └── lint_draft.py
+└── assets/
+    ├── canon.json.tmpl
+    └── ledger.json.tmpl
+
 skills/shot-forge/
 ├── SKILL.md
 ├── references/
@@ -143,10 +189,11 @@ skills/shot-forge/
 
 ```bash
 hermes skills install shairkhan2/hermes-content-creator-/skills/story-forge
+hermes skills install shairkhan2/hermes-content-creator-/skills/tale-forge
 hermes skills install shairkhan2/hermes-content-creator-/skills/shot-forge
 ```
 
-Then `/story-forge` or `/shot-forge` in any Hermes session.
+Then `/story-forge`, `/tale-forge`, or `/shot-forge` in any Hermes session.
 
 ### The validators standalone
 
@@ -155,6 +202,8 @@ Both are stdlib-only Python 3.9+, usable outside Hermes.
 ```bash
 python3 skills/story-forge/scripts/check_ledger.py ledger.json
 python3 skills/story-forge/scripts/lint_draft.py draft.md --pack pack.json --budget 95
+python3 skills/tale-forge/scripts/check_ledger.py ledger.json --mode fiction
+python3 skills/tale-forge/scripts/lint_draft.py draft.md --mode fiction --budget 95
 python3 skills/shot-forge/scripts/build_shotlist.py vo.json -o shotlist.json
 python3 skills/shot-forge/scripts/check_shotlist.py shotlist.json --require-prompts
 python3 skills/shot-forge/scripts/build_edit.py shotlist.json -o edit.json
