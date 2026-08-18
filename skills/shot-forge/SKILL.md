@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [video, veo, imagen, vertex-ai, keyframes, storyboard, shot-list, narration]
-    related_skills: [story-forge]
+    related_skills: [story-forge, tale-forge, voice-forge]
     requires_toolsets: [terminal, file]
     config:
       - key: shot_forge.veo_model
@@ -83,8 +83,8 @@ Two artifacts, both required before anything renders.
 **`handoff.json`** — from `story-forge`. Supplies the title, the root question, and the
 beat structure that decides where cuts land.
 
-**`voiceover.json`** — the narration audio and its timing. Schema in
-`assets/voiceover.json.tmpl`:
+**`voiceover.json`** — the narration audio and its timing, produced by
+`voice-forge`. Schema in `assets/voiceover.json.tmpl`:
 
 ```json
 {

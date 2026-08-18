@@ -93,6 +93,27 @@ dread" — the same defect in a different register: asserting an effect the pros
 earned. A reader told they're frightened stops being frightened. Genre furniture
 (chills down spines, deafening silence) fails too.
 
+## Voice Forge
+
+Turns the finished script into narration audio with exact clause-level timing, on
+either of two backends — **and always asks which one, per project, never assumed.**
+
+**Vertex Cloud TTS** and **ElevenLabs v3** get to timing by genuinely different means.
+Vertex's SSML `<mark>` tags are timed natively — the API just echoes back a timestamp
+per mark name. ElevenLabs v3 has no SSML marks at all; it returns character-level
+alignment for the whole utterance instead, so getting clause timing out of it means
+mapping each clause's known character offset into that alignment array.
+
+That offset mapping is the fragile part — a one-character mismatch between the text
+actually sent to the API and the text the offsets describe silently misdirects every
+timestamp after it. `build_voiceover.py` checks: at each clause's claimed offset, does
+the alignment actually start with that clause's own first character? A mismatch is a
+hard failure, not a warning, because this kind of drift doesn't look wrong three stages
+later — it just produces a plausible, wrong shot list.
+
+Both backends normalize to the identical `voiceover.json` shape, so `shot-forge` cannot
+tell which one spoke a given script.
+
 ## Shot Forge
 
 Renders a narrated script to video on Vertex AI. It derives a visual style *from the
@@ -190,10 +211,11 @@ skills/shot-forge/
 ```bash
 hermes skills install shairkhan2/hermes-content-creator-/skills/story-forge
 hermes skills install shairkhan2/hermes-content-creator-/skills/tale-forge
+hermes skills install shairkhan2/hermes-content-creator-/skills/voice-forge
 hermes skills install shairkhan2/hermes-content-creator-/skills/shot-forge
 ```
 
-Then `/story-forge`, `/tale-forge`, or `/shot-forge` in any Hermes session.
+Then `/story-forge`, `/tale-forge`, `/voice-forge`, or `/shot-forge` in any Hermes session.
 
 ### The validators standalone
 
@@ -204,6 +226,8 @@ python3 skills/story-forge/scripts/check_ledger.py ledger.json
 python3 skills/story-forge/scripts/lint_draft.py draft.md --pack pack.json --budget 95
 python3 skills/tale-forge/scripts/check_ledger.py ledger.json --mode fiction
 python3 skills/tale-forge/scripts/lint_draft.py draft.md --mode fiction --budget 95
+python3 skills/voice-forge/scripts/split_clauses.py handoff.json --project-dir <dir> -o clauses.json
+python3 skills/voice-forge/scripts/build_voiceover.py response.json --backend vertex --audio-file vo.wav
 python3 skills/shot-forge/scripts/build_shotlist.py vo.json -o shotlist.json
 python3 skills/shot-forge/scripts/check_shotlist.py shotlist.json --require-prompts
 python3 skills/shot-forge/scripts/build_edit.py shotlist.json -o edit.json
